@@ -235,6 +235,14 @@ def main():
         full_train_dataset = DigitDataset(args.train_dir, transform=transform)
         test_dataset = DigitDataset(args.test_dir, transform=transform)
         
+        # 检查数据集是否为空
+        if len(full_train_dataset) == 0:
+            print(f"错误：训练数据集为空！请检查路径 {args.train_dir} 是否包含 .bmp 文件")
+            return
+        if len(test_dataset) == 0:
+            print(f"错误：测试数据集为空！请检查路径 {args.test_dir} 是否包含 .bmp 文件")
+            return
+        
         # 划分训练集和验证集
         train_size = int(0.8 * len(full_train_dataset))
         val_size = len(full_train_dataset) - train_size
@@ -245,10 +253,9 @@ def main():
         print(f'Validation samples: {len(val_dataset)}')
         print(f'Test samples: {len(test_dataset)}')
         
-    except FileNotFoundError:
-        print("数据目录未找到。请确保数据集已正确下载并解压。")
-        print("训练数据目录: 1-Digit-TrainSet")
-        print("测试数据目录: 1-Digit-TestSet")
+    except Exception as e:
+        print(f"加载数据时出错: {str(e)}")
+        print("请确保数据目录存在且包含 .bmp 文件")
         return
     
     # 创建数据加载器

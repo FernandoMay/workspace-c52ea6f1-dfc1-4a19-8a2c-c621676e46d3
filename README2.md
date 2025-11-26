@@ -123,6 +123,9 @@ pip install jupyter ipywidgets
 ```bash
 cd problem1
 python digit_recognition.py --train_dir ../1-Digit-TrainSet --test_dir ../1-Digit-TestSet
+
+python digit_recognition.py --train_dir ../TrainSet --test_dir ../TestSet
+
 ```
 
 **可选参数：**
