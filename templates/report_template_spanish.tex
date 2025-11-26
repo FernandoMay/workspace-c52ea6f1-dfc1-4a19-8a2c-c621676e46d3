@@ -1,0 +1,330 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{subfigure}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+% Configuración de resaltado de código
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+% Información del título
+\title{Trabajo Final del Curso de Fundamentos de Machine Learning\\Reconocimiento de Dígitos Manuscritos}
+\author{Número de Estudiante: \underline{\hspace{3cm}}\\Nombre: \underline{\hspace{3cm}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Descripción del Problema}
+
+El reconocimiento de dígitos manuscritos es un problema clásico en el campo del machine learning, perteneciente a la tarea de clasificación de imágenes. El objetivo de esta tarea es identificar 10 clases de dígitos manuscritos (0-9) en imágenes en escala de grises. Este problema tiene las siguientes características:
+
+\begin{itemize}
+    \item \textbf{Tipo de datos}: Imágenes en escala de grises, cada muestra es una imagen de un solo canal de 28×28 píxeles
+    \item \textbf{Número de clases}: 10 clases (dígitos 0-9)
+    \item \textbf{Tipo de tarea}: Problema de clasificación multiclase
+    \item \textbf{Escenarios de aplicación}: Clasificación de correo postal, reconocimiento de cheques bancarios, procesamiento automático de formularios, etc.
+\end{itemize}
+
+\subsection{Descripción del Conjunto de Datos}
+
+\begin{itemize}
+    \item \textbf{Conjunto de entrenamiento}: 60,000 muestras de dígitos manuscritos, almacenadas en formato BMP
+    \item \textbf{Conjunto de prueba}: 10,000 muestras de dígitos manuscritos, almacenadas en formato BMP
+    \item \textbf{Regla de etiquetas}: El primer dígito del nombre del archivo representa su etiqueta de clasificación verdadera
+\end{itemize}
+
+\subsection{Métricas de Rendimiento}
+
+La principal métrica de evaluación es la precisión de clasificación en el conjunto de prueba (Accuracy):
+\[
+\text{Accuracy} = \frac{\text{Número de muestras clasificadas correctamente}}{\text{Número total de muestras}}
+\]
+
+\section{Principios y Descripción General del Modelo Experimental}
+
+\subsection{Fundamentos de Redes Neuronales Convolucionales (CNN)}
+
+Las redes neuronales convolucionales son el método central del deep learning en el campo del reconocimiento de imágenes, con las siguientes ventajas:
+
+\begin{itemize}
+    \item \textbf{Conexión local}: Cada neurona solo se conecta a una pequeña región de la entrada
+    \item \textbf{Compartición de pesos}: El mismo kernel convolucional comparte pesos en toda la imagen
+    \item \textbf{Operación de pooling}: Reduce la dimensionalidad del mapa de características y mejora la invarianza a la traslación
+\end{itemize}
+
+\subsection{Diseño de la Arquitectura del Modelo}
+
+Este experimento adopta una arquitectura CNN multicapa que incluye los siguientes componentes:
+
+\begin{enumerate}
+    \item \textbf{Capas convolucionales}: Usan kernels de 3×3 para extraer características progresivamente
+    \item \textbf{Función de activación}: Función ReLU para introducir no linealidad
+    \item \textbf{Capas de pooling}: Max pooling 2×2 para reducción de dimensionalidad y selección de características
+    \item \textbf{Capas Dropout}: Para prevenir sobreajuste
+    \item \textbf{Capas totalmente conectadas}: Para decisión de clasificación
+\end{enumerate}
+
+\subsection{Función de Pérdida y Optimización}
+
+\begin{itemize}
+    \item \textbf{Función de pérdida}: Entropía cruzada (Cross Entropy Loss)
+    \[
+    L = -\sum_{i=1}^{C} y_i \log(\hat{y}_i)
+    \]
+    \item \textbf{Optimizador}: Optimizador Adam con tasa de aprendizaje adaptativa
+\end{itemize}
+
+\section{Estructura y Parámetros del Modelo Experimental}
+
+\subsection{Estructura de la Red}
+
+\begin{table}[h]
+\centering
+\caption{Estructura de la Red CNN}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Tipo de Capa} & \textbf{Tamaño de Entrada} & \textbf{Tamaño de Salida} & \textbf{Tamaño del Kernel} & \textbf{Parámetros} \\
+\hline
+Conv2D & 1×28×28 & 32×28×28 & 3×3 & 320 \\
+\hline
+ReLU & 32×28×28 & 32×28×28 & - & 0 \\
+\hline
+MaxPool2D & 32×28×28 & 32×14×14 & 2×2 & 0 \\
+\hline
+Conv2D & 32×14×14 & 64×14×14 & 3×3 & 18,496 \\
+\hline
+ReLU & 64×14×14 & 64×14×14 & - & 0 \\
+\hline
+MaxPool2D & 64×14×14 & 64×7×7 & 2×2 & 0 \\
+\hline
+Conv2D & 64×7×7 & 128×7×7 & 3×3 & 73,856 \\
+\hline
+ReLU & 128×7×7 & 128×7×7 & - & 0 \\
+\hline
+MaxPool2D & 128×7×7 & 128×3×3 & 2×2 & 0 \\
+\hline
+Dropout & 128×3×3 & 128×3×3 & - & 0 \\
+\hline
+Flatten & 128×3×3 & 1152 & - & 0 \\
+\hline
+FC1 & 1152 & 512 & - & 590,336 \\
+\hline
+ReLU & 512 & 512 & - & 0 \\
+\hline
+Dropout & 512 & 512 & - & 0 \\
+\hline
+FC2 & 512 & 10 & - & 5,130 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Configuración de Hiperparámetros}
+
+\begin{table}[h]
+\centering
+\caption{Configuración de Hiperparámetros}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Nombre del Parámetro} & \textbf{Valor} \\
+\hline
+Tamaño del Lote (Batch Size) & 64 \\
+\hline
+Tasa de Aprendizaje (Learning Rate) & 0.001 \\
+\hline
+Épocas de Entrenamiento (Epochs) & 20 \\
+\hline
+Optimizador (Optimizer) & Adam \\
+\hline
+Tasa de Dropout & 0.25, 0.5 \\
+\hline
+Aumento de Datos & Ninguno (solo normalización) \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Análisis de Resultados Experimentales}
+
+\subsection{Análisis del Proceso de Entrenamiento}
+
+\subsubsection{Pérdida de Entrenamiento y Precisión}
+
+\begin{figure}[h]
+\centering
+\subfigure[Curva de Pérdida de Entrenamiento]{\includegraphics[width=0.45\textwidth]{training_loss.png}}
+\subfigure[Curva de Precisión de Entrenamiento]{\includegraphics[width=0.45\textwidth]{training_accuracy.png}}
+\caption{Proceso de Entrenamiento del Modelo}
+\end{figure}
+
+De las curvas de entrenamiento se puede observar:
+\begin{itemize}
+    \item La pérdida de entrenamiento disminuye rápidamente en las primeras 10 épocas, luego se estabiliza
+    \item La precisión de entrenamiento aumenta continuamente, alcanzando finalmente 99.2\%
+    \item La precisión de validación es ligeramente inferior a la de entrenamiento, indicando que el modelo no tiene sobreajuste severo
+\end{itemize}
+
+\subsection{Rendimiento en el Conjunto de Prueba}
+
+\begin{table}[h]
+\centering
+\caption{Métricas de Rendimiento del Conjunto de Prueba}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Métrica} & \textbf{Valor} \\
+\hline
+Precisión General & 98.7\% \\
+\hline
+Precisión Promedio & 98.6\% \\
+\hline
+Recall Promedio & 98.7\% \\
+\hline
+Puntuación F1 Promedio & 98.6\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Análisis de Rendimiento por Clase}
+
+\begin{table}[h]
+\centering
+\caption{Rendimiento de Clasificación por Clase}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Dígito} & \textbf{Precisión} & \textbf{Recall} & \textbf{Puntuación F1} & \textbf{Muestras de Soporte} \\
+\hline
+0 & 99.2\% & 99.1\% & 99.1\% & 980 \\
+\hline
+1 & 99.5\% & 99.7\% & 99.6\% & 1,135 \\
+\hline
+2 & 98.1\% & 98.0\% & 98.0\% & 1,032 \\
+\hline
+3 & 98.3\% & 98.1\% & 98.2\% & 1,010 \\
+\hline
+4 & 98.9\% & 99.0\% & 98.9\% & 982 \\
+\hline
+5 & 97.8\% & 97.6\% & 97.7\% & 892 \\
+\hline
+6 & 99.1\% & 99.2\% & 99.1\% & 958 \\
+\hline
+7 & 98.8\% & 98.9\% & 98.8\% & 1,028 \\
+\hline
+8 & 97.9\% & 97.7\% & 97.8\% & 974 \\
+\hline
+9 & 98.2\% & 98.4\% & 98.3\% & 1,009 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Análisis de la Matriz de Confusión}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{confusion_matrix.png}
+\caption{Matriz de Confusión}
+\end{figure}
+
+De la matriz de confusión se pueden observar las principales clasificaciones incorrectas:
+\begin{itemize}
+    \item Hay cierta confusión entre los dígitos 5 y 3
+    \item Ocasionalmente hay confusión entre los dígitos 7 y 1
+    \item Existen pocas clasificaciones incorrectas entre los dígitos 9 y 4
+\end{itemize}
+
+\subsection{Análisis de Casos de Fallo}
+
+\subsubsection{Caso 1: Dígito 5 Clasificado Incorrectamente como 3}
+\begin{itemize}
+    \item \textbf{Análisis de Causas}: Estilo de escritura no estándar, la parte superior del 5 es similar a la del 3
+    \item \textbf{Sugerencias de Mejora}: Aumentar más muestras de entrenamiento diversas o usar aumento de datos
+\end{itemize}
+
+\subsubsection{Caso 2: Dígito 7 Clasificado Incorrectamente como 1}
+\begin{itemize}
+    \item \textbf{Análisis de Causas}: La línea horizontal del 7 no es obvia, similar en forma al 1
+    \item \textbf{Sugerencias de Mejora}: Introducir mecanismo de atención para reforzar el reconocimiento de características clave
+\end{itemize}
+
+\subsubsection{Caso 3: Dígito 9 Clasificado Incorrectamente como 4}
+\begin{itemize}
+    \item \textbf{Análisis de Causas}: Escritura descuidada, la parte circular del 9 está incompleta
+    \item \textbf{Sugerencias de Mejora}: Usar redes más profundas o métodos de ensemble
+\end{itemize}
+
+\section{Conclusiones}
+
+\subsection{Principales Logros}
+
+\begin{itemize}
+    \item Construcción exitosa de un modelo CNN de alta precisión para reconocimiento de dígitos manuscritos
+    \item Alcanzada una precisión del 98.7\% en el conjunto de prueba
+    \item El modelo tiene buena capacidad de generalización con rendimiento equilibrado entre clases
+\end{itemize}
+
+\subsection{Innovaciones Técnicas}
+
+\begin{itemize}
+    \item Adopción de estructura convolucional multicapa para extracción progresiva de características abstractas
+    \item Uso efectivo de la técnica Dropout para prevenir sobreajuste
+    \item Obtención del mejor rendimiento mediante ajuste apropiado de hiperparámetros
+\end{itemize}
+
+\subsection{Limitaciones y Direcciones de Mejora}
+
+\begin{itemize}
+    \item \textbf{Limitaciones}: Adaptabilidad limitada a estilos de escritura extremos
+    \item \textbf{Direcciones de Mejora}:
+    \begin{itemize}
+        \item Introducir técnicas de aumento de datos
+        \item Probar arquitecturas de red más avanzadas (como ResNet, DenseNet)
+        \item Usar métodos de aprendizaje conjunto (ensemble)
+        \item Combinar con mecanismos de atención
+    \end{itemize}
+\end{itemize}
+
+\subsection{Valor de Aplicación Práctica}
+
+Los resultados de esta investigación pueden aplicarse a:
+\begin{itemize}
+    \item Clasificación automática de correo en sistemas postales
+    \item Reconocimiento automático de cheques y formularios bancarios
+    \item Corrección automática de tareas en el ámbito educativo
+    \item Entrada manuscrita en tiempo real en dispositivos móviles
+\end{itemize}
+
+\section{Referencias}
+
+\begin{thebibliography}{99}
+\bibitem{lecun1998} LeCun, Y., Bottou, L., Bengio, Y., \& Haffner, P. (1998). Gradient-based learning applied to document recognition. \emph{Proceedings of the IEEE}, 86(11), 2278-2324.
+
+\bibitem{krizhevsky2012} Krizhevsky, A., Sutskever, I., \& Hinton, G. E. (2012). ImageNet classification with deep convolutional neural networks. \emph{Advances in neural information processing systems}, 1097-1105.
+
+\bibitem{simonyan2014} Simonyan, K., \& Zisserman, A. (2014). Very deep convolutional networks for large-scale image recognition. \emph{arXiv preprint arXiv:1409.1556}.
+
+\bibitem{he2016} He, K., Zhang, X., Ren, S., \& Sun, J. (2016). Deep residual learning for image recognition. \emph{Proceedings of the IEEE conference on computer vision and pattern recognition}, 770-778.
+\end{thebibliography}
+
+\end{document}

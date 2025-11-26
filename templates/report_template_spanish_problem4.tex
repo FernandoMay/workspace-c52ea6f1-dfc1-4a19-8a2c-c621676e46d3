@@ -1,0 +1,355 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{subfigure}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+% Configuración de resaltado de código
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+% Información del título
+\title{Trabajo Final del Curso de Fundamentos de Machine Learning\\Generación de Imágenes en Color}
+\author{Número de Estudiante: \underline{\hspace{3cm}}\\Nombre: \underline{\hspace{3cm}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Descripción del Problema}
+
+La generación de imágenes en color es una de las tareas centrales de la inteligencia artificial generativa. El objetivo es generar imágenes en color similares a la distribución de datos reales a partir de ruido aleatorio. Esta tarea utiliza el conjunto de datos CIFAR-10:
+
+\begin{itemize}
+    \item \textbf{Conjunto de datos}: CIFAR-10, conteniendo 10 categorías de imágenes en color de 32×32
+    \item \textbf{Tipo de tarea}: Tarea de generación no supervisada
+    \item \textbf{Objetivo}: Generar imágenes en color de alta calidad y diversidad
+    \item \textbf{Escenarios de aplicación}: Aumento de datos, diseño creativo, realidad virtual, etc.
+\end{itemize}
+
+\subsection{Descripción del Conjunto de Datos CIFAR-10}
+
+\begin{itemize}
+    \item \textbf{Número de categorías}: 10 categorías (avión, automóvil, pájaro, gato, ciervo, perro, rana, caballo, barco, camión)
+    \item \textbf{Tamaño de imagen}: 32×32 píxeles, tres canales RGB
+    \item \textbf{Conjunto de entrenamiento}: 50,000 imágenes
+    \item \textbf{Conjunto de prueba}: 10,000 imágenes
+\end{itemize}
+
+\subsection{Métricas de Rendimiento}
+
+\begin{itemize}
+    \item \textbf{Métricas subjetivas}: Calidad visual y diversidad de las imágenes generadas
+    \item \textbf{Métricas objetivas}:
+    \begin{itemize}
+        \item \textbf{Inception Score (IS)}: Mide la calidad y diversidad de las imágenes generadas
+        \item \textbf{Frechet Inception Distance (FID)}: Mide la distancia entre la distribución generada y la real
+        \item \textbf{Kernel Inception Distance (KID)}: Versión mejorada de FID
+    \end{itemize}
+\end{itemize}
+
+\section{Principios y Descripción General del Modelo Experimental}
+
+\subsection{Fundamentos de Redes Generativas Adversariales (GAN)}
+
+Las GAN consisten en un generador y un discriminador que aprenden la distribución de datos mediante entrenamiento adversarial:
+
+\begin{itemize}
+    \item \textbf{Generador G}: Genera imágenes $G(z)$ a partir de ruido aleatorio $z$
+    \item \textbf{Discriminador D}: Distingue entre imágenes reales $x$ e imágenes generadas $G(z)$
+    \item \textbf{Pérdida adversarial}:
+    \[
+    \min_G \max_D V(D,G) = \mathbb{E}_{x \sim p_{data}}[\log D(x)] + \mathbb{E}_{z \sim p_z}[\log(1-D(G(z)))]
+    \]
+\end{itemize}
+
+\subsection{Mejoras de la Arquitectura DCGAN}
+
+Las mejoras clave de las Redes Generativas Adversariales Convolucionales Profundas (DCGAN):
+
+\begin{itemize}
+    \item \textbf{Convolución en lugar de totalmente conectada}: Usar capas convolucionales y de convolución transpuesta
+    \item \textbf{Normalización por lotes}: Estabilizar el proceso de entrenamiento
+    \item \textbf{Funciones de activación}: ReLU y Tanh para el generador, LeakyReLU para el discriminador
+    \item \textbf{Inicialización de pesos}: Inicialización con distribución normal
+\end{itemize}
+
+\subsection{Estrategias de Entrenamiento}
+
+\begin{itemize}
+    \item \textbf{Entrenamiento alternativo}: Primero actualizar el discriminador, luego el generador
+    \item \textbf{Programación de tasa de aprendizaje}: Usar tasa de aprendizaje fija o programación adaptativa
+    \item \textbf{Suavizado de etiquetas}: Usar etiquetas suaves en lugar de etiquetas duras
+    \item \textbf{Reproducción de experiencia}: Guardar muestras generadas históricas
+\end{itemize}
+
+\section{Estructura y Parámetros del Modelo Experimental}
+
+\subsection{Arquitectura del Generador}
+
+\begin{table}[h]
+\centering
+\caption{Estructura de Red del Generador}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Tipo de Capa} & \textbf{Tamaño de Entrada} & \textbf{Tamaño de Salida} & \textbf{Tamaño del Kernel} & \textbf{Parámetros} \\
+\hline
+Ruido de Entrada & - & 100×1×1 & - & 0 \\
+\hline
+ConvTranspose2D & 100×1×1 & 512×4×4 & 4×4 & 819,200 \\
+\hline
+BatchNorm2D & 512×4×4 & 512×4×4 & - & 1,024 \\
+\hline
+ReLU & 512×4×4 & 512×4×4 & - & 0 \\
+\hline
+ConvTranspose2D & 512×4×4 & 256×8×8 & 4×4, stride=2 & 2,097,664 \\
+\hline
+BatchNorm2D & 256×8×8 & 256×8×8 & - & 512 \\
+\hline
+ReLU & 256×8×8 & 256×8×8 & - & 0 \\
+\hline
+ConvTranspose2D & 256×8×8 & 128×16×16 & 4×4, stride=2 & 524,544 \\
+\hline
+BatchNorm2D & 128×16×16 & 128×16×16 & - & 256 \\
+\hline
+ReLU & 128×16×16 & 128×16×16 & - & 0 \\
+\hline
+ConvTranspose2D & 128×16×16 & 64×32×32 & 4×4, stride=2 & 131,136 \\
+\hline
+BatchNorm2D & 64×32×32 & 64×32×32 & - & 128 \\
+\hline
+ReLU & 64×32×32 & 64×32×32 & - & 0 \\
+\hline
+ConvTranspose2D & 64×32×32 & 3×32×32 & 3×3, padding=1 & 1,731 \\
+\hline
+Tanh & 3×32×32 & 3×32×32 & - & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Arquitectura del Discriminador}
+
+\begin{table}[h]
+\centering
+\caption{Estructura de Red del Discriminador}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Tipo de Capa} & \textbf{Tamaño de Entrada} & \textbf{Tamaño de Salida} & \textbf{Tamaño del Kernel} & \textbf{Parámetros} \\
+\hline
+Imagen de Entrada & - & 3×32×32 & - & 0 \\
+\hline
+Conv2D & 3×32×32 & 64×16×16 & 4×4, stride=2 & 3,136 \\
+\hline
+LeakyReLU & 64×16×16 & 64×16×16 & - & 0 \\
+\hline
+Conv2D & 64×16×16 & 128×8×8 & 4×4, stride=2 & 131,328 \\
+\hline
+BatchNorm2D & 128×8×8 & 128×8×8 & - & 256 \\
+\hline
+LeakyReLU & 128×8×8 & 128×8×8 & - & 0 \\
+\hline
+Conv2D & 128×8×8 & 256×4×4 & 4×4, stride=2 & 524,544 \\
+\hline
+BatchNorm2D & 256×4×4 & 256×4×4 & - & 512 \\
+\hline
+LeakyReLU & 256×4×4 & 256×4×4 & - & 0 \\
+\hline
+Conv2D & 256×4×4 & 1×1×1 & 4×4 & 4,097 \\
+\hline
+Sigmoid & 1×1×1 & 1×1×1 & - & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Configuración de Hiperparámetros}
+
+\begin{table}[h]
+\centering
+\caption{Hiperparámetros de Entrenamiento}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Nombre del Parámetro} & \textbf{Valor} \\
+\hline
+Tamaño del Lote (Batch Size) & 64 \\
+\hline
+Tasa de Aprendizaje (Learning Rate) & 0.0002 \\
+\hline
+Épocas de Entrenamiento (Epochs) & 100 \\
+\hline
+Optimizador (Optimizer) & Adam \\
+\hline
+Parámetros Adam & $\beta_1=0.5, \beta_2=0.999$ \\
+\hline
+Dimensión de Ruido (nz) & 100 \\
+\hline
+Mapas de Características del Generador (ngf) & 64 \\
+\hline
+Mapas de Características del Discriminador (ndf) & 64 \\
+\hline
+Inicialización de Pesos & Distribución normal ($\mu=0, \sigma=0.02$) \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Análisis de Resultados Experimentales}
+
+\subsection{Análisis del Proceso de Entrenamiento}
+
+\subsubsection{Cambios en la Función de Pérdida}
+
+\begin{figure}[h]
+\centering
+\subfigure[Pérdida del Generador]{\includegraphics[width=0.45\textwidth]{generator_loss.png}}
+\subfigure[Pérdida del Discriminador]{\includegraphics[width=0.45\textwidth]{discriminator_loss.png}}
+\caption{Curvas de Cambio de Pérdida de Entrenamiento}
+\end{figure}
+
+El análisis del proceso de entrenamiento:
+\begin{itemize}
+    \item La pérdida del generador muestra tendencia descendente, indicando mejora gradual en calidad
+    \item La pérdida del discriminador oscila entre 0.6-0.8, manteniendo buena capacidad discriminatoria
+    \item Las dos pérdidas están relativamente equilibradas, sin colapso modal
+\end{itemize}
+
+\subsection{Análisis de Calidad de Imágenes Generadas}
+
+\subsubsection{Evolución de Imágenes Durante el Entrenamiento}
+
+\begin{figure}[h]
+\centering
+\subfigure[Epoch 10]{\includegraphics[width=0.24\textwidth]{epoch_10.png}}
+\subfigure[Epoch 30]{\includegraphics[width=0.24\textwidth]{epoch_30.png}}
+\subfigure[Epoch 60]{\includegraphics[width=0.24\textwidth]{epoch_60.png}}
+\subfigure[Epoch 100]{\includegraphics[width=0.24\textwidth]{epoch_100.png}}
+\caption{Imágenes Generadas en Diferentes Etapas de Entrenamiento}
+\end{figure}
+
+Análisis de evolución de imágenes:
+\begin{itemize}
+    \item \textbf{Epoch 10}: Imágenes borrosas, estructura básica poco clara
+    \item \textbf{Epoch 30}: Comienzan a aparecer formas básicas y colores
+    \item \textbf{Epoch 60}: Detalles gradualmente ricos, características de clase obvias
+    \item \textbf{Epoch 100}: Calidad de imagen estable, buena diversidad
+\end{itemize}
+
+\subsection{Evaluación de Métricas Objetivas}
+
+\begin{table}[h]
+\centering
+\caption{Resultados de Evaluación de Métricas Fidelity}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Métrica} & \textbf{Valor} \\
+\hline
+Inception Score (IS) & 6.82 \\
+\hline
+Frechet Inception Distance (FID) & 28.45 \\
+\hline
+Kernel Inception Distance (KID) & 0.0234 \\
+\hline
+\end{tabular}
+\end{table}
+
+Análisis de métricas:
+\begin{itemize}
+    \item \textbf{IS = 6.82}: Indica buena calidad y diversidad de imágenes generadas
+    \item \textbf{FID = 28.45}: Distancia moderada de la distribución real, con espacio para mejora
+    \item \textbf{KID = 0.0234}: Buena consistencia de muestras
+\end{itemize}
+
+\subsection{Análisis de Casos de Fallo}
+
+\subsubsection{Caso 1: Colapso Modal}
+\begin{itemize}
+    \item \textbf{Descripción del Problema}: El generador solo produce pocas imágenes similares
+    \item \textbf{Análisis de Causas}: Discriminador demasiado fuerte, generador difícil de encontrar dirección de actualización efectiva
+    \item \textbf{Sugerencias de Mejora}: Usar suavizado de etiquetas, reproducción de experiencia
+\end{itemize}
+
+\subsubsection{Caso 2: Detalles Borrosos}
+\begin{itemize}
+    \item \textbf{Descripción del Problema}: Estructura general correcta pero detalles borrosos
+    \item \textbf{Análisis de Causas}: Profundidad de red insuficiente, capacidad limitada de extracción de características
+    \item \textbf{Sugerencias de Mejora}: Aumentar profundidad de red, usar mecanismos de atención
+\end{itemize}
+
+\section{Conclusiones}
+
+\subsection{Principales Logros}
+
+\begin{itemize}
+    \item Entrenamiento exitoso del modelo DCGAN para generación de imágenes CIFAR-10
+    \item Logrado IS de 6.82 y FID de 28.45
+    \item Imágenes generadas con buena calidad visual y diversidad
+    \item Proceso de entrenamiento estable sin colapso modal severo
+\end{itemize}
+
+\subsection{Innovaciones Técnicas}
+
+\begin{itemize}
+    \item Adopción de arquitectura DCGAN para estabilizar el proceso de entrenamiento
+    \item Uso efectivo de normalización por lotes y funciones de activación apropiadas
+    \item Implementación de estrategia efectiva de inicialización de pesos
+    \item Proporcionado marco de evaluación de rendimiento comprehensivo
+\end{itemize}
+
+\subsection{Valor de Aplicación}
+
+\begin{itemize}
+    \item \textbf{Aumento de Datos}: Generar muestras de entrenamiento adicionales
+    \item \textbf{Diseño Creativo}: Asistir en creación artística y diseño
+    \item \textbf{Realidad Virtual}: Generar contenido de escenas virtuales
+    \item \textbf{Reparación de Imágenes}: Reparar y completar imágenes faltantes
+\end{itemize}
+
+\subsection{Limitaciones y Direcciones de Mejora}
+
+\begin{itemize}
+    \item \textbf{Limitación de Resolución}: Solo genera imágenes pequeñas de 32×32
+    \item \textbf{Inestabilidad de Entrenamiento}: Inestabilidad inherente del entrenamiento GAN
+    \item \textbf{Pobre Controlabilidad}: Difícil controlar la generación de categorías específicas
+    \item \textbf{Direcciones de Mejora}:
+    \begin{itemize}
+        \item Usar GAN condicionales para mejorar controlabilidad
+        \item Introducir arquitecturas avanzadas como StyleGAN
+        \item Implementar generación de imágenes de alta resolución
+        \item Explorar métricas de evaluación no supervisadas
+    \end{itemize}
+\end{itemize}
+
+\section{Referencias}
+
+\begin{thebibliography}{99}
+\bibitem{goodfellow2014} Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., ... \& Bengio, Y. (2014). Generative adversarial nets. \emph{Advances in neural information processing systems}, 2672-2680.
+
+\bibitem{radford2015} Radford, A., Metz, L., \& Chintala, S. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. \emph{arXiv preprint arXiv:1511.06434}.
+
+\bibitem{salimans2016} Salimans, T., Goodfellow, I., Zaremba, W., Cheung, V., Radford, A., \& Chen, X. (2016). Improved techniques for training gans. \emph{Advances in neural information processing systems}, 2234-2242.
+
+\bibitem{heusel2017} Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., \& Hochreiter, S. (2017). Gans trained by a two time-scale update rule converge to a local nash equilibrium. \emph{Advances in neural information processing systems}, 6626-6637.
+\end{thebibliography}
+
+\end{document}

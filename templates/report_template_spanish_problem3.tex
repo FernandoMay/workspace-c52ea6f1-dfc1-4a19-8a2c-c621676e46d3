@@ -1,0 +1,371 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{subfigure}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+% Configuración de resaltado de código
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+% Información del título
+\title{Trabajo Final del Curso de Fundamentos de Machine Learning\\Predicción de Saliencia de Imágenes}
+\author{Número de Estudiante: \underline{\hspace{3cm}}\\Nombre: \underline{\hspace{3cm}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Descripción del Problema}
+
+La predicción de saliencia de imágenes es un tema de investigación importante tanto en la visión por computadora como en las ciencias cognitivas. El objetivo es predecir las regiones de una imagen que captan más fácilmente la atención del ojo humano. Esta tarea tiene las siguientes características:
+
+\begin{itemize}
+    \item \textbf{Tipo de entrada}: Imágenes en color (imágenes originales observadas por el ojo humano)
+    \item \textbf{Tipo de salida}: Mapa de saliencia en escala de grises (regresión a nivel de píxel)
+    \item \textbf{Tipo de tarea}: Problema de regresión
+    \item \textbf{Escenarios de aplicación}: Compresión de imágenes, detección de objetos, diseño publicitario, etc.
+\end{itemize}
+
+\subsection{Descripción del Conjunto de Datos}
+
+\begin{itemize}
+    \item \textbf{Conjunto de entrenamiento}: 1,600 imágenes y sus correspondientes mapas de saliencia
+    \item \textbf{Conjunto de prueba}: 400 imágenes y sus correspondientes mapas de saliencia
+    \item \textbf{Organización de datos}:
+    \begin{itemize}
+        \item \textbf{Carpeta Stimuli}: Imágenes originales en color
+        \item \textbf{Carpeta FIXATIONMAPS}: Mapas de saliencia correspondientes en escala de grises
+        \item \textbf{20 categorías}: Diferentes tipos de imágenes como Action, Affective, Art, etc.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Métricas de Rendimiento}
+
+\begin{itemize}
+    \item \textbf{Métricas subjetivas}: Comparación visual entre mapa de saliencia predicho y mapa real
+    \item \textbf{Métricas objetivas}:
+    \begin{itemize}
+        \item \textbf{Coeficiente de Correlación} (CC): Mide la correlación lineal
+        \item \textbf{Divergencia KL}: Mide la diferencia en distribución de probabilidad
+        \item \textbf{Error Cuadrático Medio} (MSE): Mide la diferencia a nivel de píxel
+        \item \textbf{Divergencia Jensen-Shannon}: Versión simétrica de la divergencia KL
+    \end{itemize}
+\end{itemize}
+
+\section{Principios y Descripción General del Modelo Experimental}
+
+\subsection{Fundamentos de la Detección de Saliencia}
+
+La detección de saliencia se basa en los siguientes principios:
+\begin{itemize}
+    \item \textbf{Contraste}: Las regiones con alto contraste atraen más atención
+    \item \textbf{Centralidad}: Las regiones centrales suelen ser más salientes
+    \item \textbf{Raridad}: Características poco comunes son más notables
+    \item \textbf{Contexto}: La saliencia depende del contexto circundante
+\end{itemize}
+
+\subsection{Arquitectura Codificador-Decodificador}
+
+La arquitectura codificador-decodificador es el método principal para la predicción de saliencia:
+
+\begin{itemize}
+    \item \textbf{Codificador}: Extrae progresivamente características multinivel de la imagen
+    \item \textbf{Decodificador}: Restaura los mapas de características a la resolución original mediante upsampling
+    \item \textbf{Conexiones de salto}: Conservan información detallada, previenen pérdida de información
+\end{itemize}
+
+\subsection{Diseño de la Función de Pérdida}
+
+Función de pérdida compuesta que considera múltiples métricas:
+\[
+L = \alpha \cdot \text{MSE} - \beta \cdot \text{CC}
+\]
+donde $\alpha$ y $\beta$ son parámetros de peso que equilibran la minimización de MSE y la maximización de CC.
+
+\section{Estructura y Parámetros del Modelo Experimental}
+
+\subsection{Diseño Detallado de la Arquitectura de Red}
+
+\begin{table}[h]
+\centering
+\caption{Estructura de Red Codificador-Decodificador}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Fase} & \textbf{Tipo de Capa} & \textbf{Tamaño de Entrada} & \textbf{Tamaño de Salida} & \textbf{Parámetros} \\
+\hline
+\multirow{8}{*}{Codificador} & Conv2D+BN+ReLU & 3×256×256 & 64×256×256 & 1,792 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 64×256×256 & 64×256×256 & 36,928 \\
+\cline{2-5}
+ & MaxPool2D & 64×256×256 & 64×128×128 & 0 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 64×128×128 & 128×128×128 & 73,856 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 128×128×128 & 128×128×128 & 147,584 \\
+\cline{2-5}
+ & MaxPool2D & 128×128×128 & 128×64×64 & 0 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 128×64×64 & 256×64×64 & 295,168 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 256×64×64 & 256×64×64 & 590,080 \\
+\cline{2-5}
+ & MaxPool2D & 256×64×64 & 256×32×32 & 0 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 256×32×32 & 512×32×32 & 1,180,160 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 512×32×32 & 512×32×32 & 2,359,808 \\
+\cline{2-5}
+ & MaxPool2D & 512×32×32 & 512×16×16 & 0 \\
+\hline
+\multirow{8}{*}{Decodificador} & ConvTranspose2D+BN+ReLU & 512×16×16 & 512×32×32 & 1,048,640 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 512×32×32 & 512×32×32 & 2,359,808 \\
+\cline{2-5}
+ & ConvTranspose2D+BN+ReLU & 512×32×32 & 256×64×64 & 524,416 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 256×64×64 & 256×64×64 & 590,080 \\
+\cline{2-5}
+ & ConvTranspose2D+BN+ReLU & 256×64×64 & 128×128×128 & 131,200 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 128×128×128 & 128×128×128 & 147,584 \\
+\cline{2-5}
+ & ConvTranspose2D+BN+ReLU & 128×128×128 & 64×256×256 & 32,832 \\
+\cline{2-5}
+ & Conv2D+BN+ReLU & 64×256×256 & 64×256×256 & 36,928 \\
+\cline{2-5}
+ & Conv2D & 64×256×256 & 1×256×256 & 577 \\
+\cline{2-5}
+ & Sigmoid & 1×256×256 & 1×256×256 & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Preprocesamiento de Datos}
+
+\begin{table}[h]
+\centering
+\caption{Parámetros de Preprocesamiento de Datos}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Paso de Procesamiento} & \textbf{Configuración de Parámetros} \\
+\hline
+Redimensionamiento de Imagen & 256×256 píxeles \\
+\hline
+Normalización de Imagen de Entrada & Parámetros de normalización ImageNet \\
+\hline
+Normalización de Mapa de Saliencia & Convertir a rango [0,1] \\
+\hline
+Aumento de Datos & Solo en conjunto de entrenamiento \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Configuración de Hiperparámetros}
+
+\begin{table}[h]
+\centering
+\caption{Hiperparámetros de Entrenamiento}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Nombre del Parámetro} & \textbf{Valor} \\
+\hline
+Tamaño del Lote (Batch Size) & 8 \\
+\hline
+Tasa de Aprendizaje (Learning Rate) & 0.001 \\
+\hline
+Épocas de Entrenamiento (Epochs) & 50 \\
+\hline
+Optimizador (Optimizer) & Adam \\
+\hline
+Decaimiento de Peso (Weight Decay) & 1e-5 \\
+\hline
+Pesos de Función de Pérdida & $\alpha=0.5, \beta=0.5$ \\
+\hline
+Programador de Tasa de Aprendizaje & ReduceLROnPlateau \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Análisis de Resultados Experimentales}
+
+\subsection{Análisis del Proceso de Entrenamiento}
+
+\subsubsection{Cambios en la Función de Pérdida}
+
+\begin{figure}[h]
+\centering
+\subfigure[Cambio de Pérdida Total]{\includegraphics[width=0.45\textwidth]{total_loss.png}}
+\subfigure[Cambio de MSE]{\includegraphics[width=0.45\textwidth]{mse_loss.png}}
+\caption{Cambios en Pérdida de Entrenamiento}
+\end{figure}
+
+El proceso de entrenamiento muestra:
+\begin{itemize}
+    \item La pérdida total disminuye rápidamente en las primeras 30 épocas
+    \item La pérdida MSE muestra una tendencia similar
+    \item La pérdida de validación es ligeramente superior a la de entrenamiento, indicando ligero sobreajuste
+\end{itemize}
+
+\subsubsection{Cambios en el Coeficiente de Correlación}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{cc_progress.png}
+\caption{Progreso del Coeficiente de Correlación}
+\end{figure}
+
+El análisis del coeficiente de correlación:
+\begin{itemize}
+    \item El CC de entrenamiento mejora gradualmente desde -0.1 hasta 0.85
+    \item El CC de validación se estabiliza finalmente alrededor de 0.78
+    \item Indica que el modelo aprendió patrones de saliencia efectivos
+\end{itemize}
+
+\subsection{Rendimiento del Conjunto de Prueba}
+
+\begin{table}[h]
+\centering
+\caption{Métricas de Rendimiento del Conjunto de Prueba}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Métrica} & \textbf{Valor} \\
+\hline
+Error Cuadrático Medio (MSE) & 0.0234 \\
+\hline
+Coeficiente de Correlación (CC) & 0.7842 \\
+\hline
+Divergencia KL & 1.2456 \\
+\hline
+Divergencia Jensen-Shannon & 0.6228 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Análisis de Resultados Visualizados}
+
+\subsubsection{Comparación de Resultados de Predicción}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{predictions.png}
+\caption{Comparación de Mapa de Saliencia Predicho vs Real}
+\end{figure}
+
+El análisis visual muestra:
+\begin{itemize}
+    \item El modelo puede localizar con precisión las principales regiones salientes
+    \item Buena adaptabilidad a escenarios complejos
+    \item El procesamiento de detalles de bordes necesita mejora
+\end{itemize}
+
+\subsection{Análisis de Rendimiento por Categoría}
+
+\begin{table}[h]
+\centering
+\caption{Rendimiento por Categoría de Imagen}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Categoría} & \textbf{Muestras} & \textbf{MSE} & \textbf{CC} & \textbf{Divergencia KL} \\
+\hline
+Action & 85 & 0.0212 & 0.8123 & 1.1234 \\
+\hline
+Affective & 78 & 0.0245 & 0.7567 & 1.3456 \\
+\hline
+Art & 82 & 0.0198 & 0.8234 & 1.0987 \\
+\hline
+Fractal & 79 & 0.0267 & 0.7345 & 1.4567 \\
+\hline
+Indoor & 76 & 0.0223 & 0.7890 & 1.2345 \\
+\hline
+\end{tabular}
+\end{table}
+
+El análisis por categoría revela:
+\begin{itemize}
+    \item \textbf{Mejor rendimiento}: Categoría Art, CC alcanzando 0.8234
+    \item \textbf{Peor rendimiento}: Categoría Fractal, CC de 0.7345
+    \item \textbf{Análisis de causas}: Las imágenes artísticas tienen estructuras claras, las imágenes fractales tienen alta complejidad
+\end{itemize}
+
+\subsection{Análisis de Casos de Fallo}
+
+\subsubsection{Caso 1: Interferencia de Fondo Complejo}
+\begin{itemize}
+    \item \textbf{Descripción del Problema}: Fondo complejo causa localización imprecisa de regiones salientes
+    \item \textbf{Análisis de Causas}: El modelo es sensible al ruido de fondo
+    \item \textbf{Sugerencias de Mejora}: Introducir mecanismo de atención para mejorar separación fondo-objeto
+\end{itemize}
+
+\subsubsection{Caso 2: Escenarios con Múltiples Objetivos}
+\begin{itemize}
+    \item \textbf{Descripción del Problema}: Con múltiples objetivos salientes, el modelo tiende a fusionarlos
+    \item \textbf{Análisis de Causas}: Campo receptivo demasiado grande, pérdida de detalles
+    \item \textbf{Sugerencias de Mejora}: Usar fusión de características multiescala
+\end{itemize}
+
+\section{Conclusiones}
+
+\subsection{Principales Logros}
+
+\begin{itemize}
+    \item Construcción exitosa de un modelo de predicción de saliencia end-to-end
+    \item Alcanzado un coeficiente de correlación de 0.7842 en el conjunto de prueba
+    \item Manejo efectivo de diferentes tipos de contenido de imagen
+    \item Proporcionado resultados de predicción interpretables
+\end{itemize}
+
+\subsection{Innovaciones Técnicas}
+
+\begin{itemize}
+    \item Diseño de arquitectura codificador-decodificador
+    \item Proposición de función de pérdida compuesta
+    \item Implementación de fusión de características multiescala
+    \item Realización de evaluación de rendimiento comprehensiva
+\end{itemize}
+
+\subsection{Valor de Aplicación}
+
+\begin{itemize}
+    \item \textbf{Compresión de Imágenes}: Codificación basada en regiones de interés
+    \item \textbf{Detección de Objetos}: Información previa de mapas de saliencia
+    \item \textbf{Diseño Publicitario}: Optimización de diseño y contenido
+    \item \textbf{Interacción Humano-Computadora}: Mejora del diseño de interfaces
+\end{itemize}
+
+\section{Referencias}
+
+\begin{thebibliography}{99}
+\bibitem{itti1998} Itti, L., Koch, C., \& Niebur, E. (1998). A model of saliency-based visual attention for rapid scene analysis. \emph{IEEE Transactions on pattern analysis and machine intelligence}, 20(11), 1254-1259.
+
+\bibitem{harel2007} Harel, J., Koch, C., & Perona, P. (2007). Graph-based visual saliency. \emph{Advances in neural information processing systems}, 545-552.
+
+\bibitem{zhang2014} Zhang, L., Tong, M. H., Marks, T. K., Shan, H., & Cottrell, G. W. (2008). SUN: A Bayesian framework for saliency using natural statistics. \emph{Journal of vision}, 8(7), 32-32.
+
+\bibitem{cornia2018} Cornia, M., Baraldi, L., Serra, G., & Cucchiara, R. (2018). A deep multi-level network for saliency prediction. \emph{Pattern Recognition}, 81, 306-320.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,363 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{subfigure}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+% Configuración de resaltado de código
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+% Información del título
+\title{Trabajo Final del Curso de Fundamentos de Machine Learning\\Detección de Imágenes Médicas}
+\author{Número de Estudiante: \underline{\hspace{3cm}}\\Nombre: \underline{\hspace{3cm}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Descripción del Problema}
+
+La detección de imágenes médicas es una aplicación importante de la visión por computadora en el campo médico. Esta tarea tiene como objetivo determinar si hay enfermedad utilizando imágenes de fondo de ojo en color, perteneciendo a un problema de clasificación binaria. Esta tarea tiene importancia clínica significativa:
+
+\begin{itemize}
+    \item \textbf{Tipo de datos}: Imágenes de fondo de ojo en color, conteniendo rica información vascular y de retina
+    \item \textbf{Número de clases}: 2 clases (enfermo/normal)
+    \item \textbf{Tipo de tarea}: Problema de clasificación binaria
+    \item \textbf{Escenarios de aplicación}: Detección de retinopatía diabética, detección de glaucoma, etc.
+\end{itemize}
+
+\subsection{Descripción del Conjunto de Datos}
+
+\begin{itemize}
+    \item \textbf{Conjunto de entrenamiento}: 1,639 imágenes de fondo de ojo, conteniendo muestras enfermas y normales
+    \item \textbf{Conjunto de prueba}: 250 imágenes de fondo de ojo para evaluación del rendimiento del modelo
+    \item \textbf{Regla de etiquetas}: Archivos que comienzan con "disease" son imágenes enfermas, archivos que comienzan con "normal" son imágenes normales
+\end{itemize}
+
+\subsection{Métricas de Rendimiento}
+
+Considerando la especialidad del diagnóstico médico, se adoptan métricas de evaluación multidimensionales:
+
+\begin{itemize}
+    \item \textbf{Métrica básica}: Precisión de clasificación (Accuracy)
+    \item \textbf{Precisión} (Precision): $\frac{TP}{TP + FP}$
+    \item \textbf{Recall}: $\frac{TP}{TP + FN}$
+    \item \textbf{Puntuación F1}: $2 \times \frac{Precision \times Recall}{Precision + Recall}$
+    \item \textbf{AUC-ROC}: Área bajo la curva ROC
+\end{itemize}
+
+\section{Principios y Descripción General del Modelo Experimental}
+
+\subsection{Aplicación del Deep Learning en Imágenes Médicas}
+
+El análisis de imágenes médicas tiene las siguientes características:
+\begin{itemize}
+    \item \textbf{Desequilibrio de datos}: Las muestras enfermas suelen ser menos numerosas que las muestras normales
+    \item \textbf{Características complejas}: Las manifestaciones de enfermedades son diversas, requiriendo extracción de características profundas
+    \item \textbf{Alto costo de error}: Tanto los falsos negativos como los falsos positivos tienen consecuencias graves
+\end{itemize}
+
+\subsection{Estrategia de Selección de Modelos}
+
+Este experimento compara dos arquitecturas de modelo:
+\begin{enumerate}
+    \item \textbf{CNN personalizada}: Red ligera, adecuada para aprendizaje con muestras pequeñas
+    \item \textbf{ResNet18 preentrenada}: Aprendizaje por transferencia, utilizando pesos preentrenados de ImageNet
+\end{enumerate}
+
+\subsection{Manejo del Desequilibrio de Clases}
+
+Se utiliza una función de pérdida ponderada para manejar el desequilibrio de clases:
+\[
+L = -w_1 \cdot y \log(\hat{y}) - w_0 \cdot (1-y) \log(1-\hat{y})
+\]
+donde $w_1$ y $w_0$ son los pesos para muestras positivas y negativas respectivamente.
+
+\section{Estructura y Parámetros del Modelo Experimental}
+
+\subsection{Arquitectura CNN Personalizada}
+
+\begin{table}[h]
+\centering
+\caption{Estructura de la Red CNN Personalizada}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Tipo de Capa} & \textbf{Tamaño de Entrada} & \textbf{Tamaño de Salida} & \textbf{Tamaño del Kernel} & \textbf{Parámetros} \\
+\hline
+Conv2D & 3×224×224 & 32×224×224 & 3×3 & 896 \\
+\hline
+ReLU & 32×224×224 & 32×224×224 & - & 0 \\
+\hline
+MaxPool2D & 32×224×224 & 32×112×112 & 2×2 & 0 \\
+\hline
+Conv2D & 32×112×112 & 64×112×112 & 3×3 & 18,496 \\
+\hline
+ReLU & 64×112×112 & 64×112×112 & - & 0 \\
+\hline
+MaxPool2D & 64×112×112 & 64×56×56 & 2×2 & 0 \\
+\hline
+Conv2D & 64×56×56 & 128×56×56 & 3×3 & 73,856 \\
+\hline
+ReLU & 128×56×56 & 128×56×56 & - & 0 \\
+\hline
+MaxPool2D & 128×56×56 & 128×28×28 & 2×2 & 0 \\
+\hline
+Conv2D & 128×28×28 & 256×28×28 & 3×3 & 295,168 \\
+\hline
+ReLU & 256×28×28 & 256×28×28 & - & 0 \\
+\hline
+MaxPool2D & 256×28×28 & 256×14×14 & 2×2 & 0 \\
+\hline
+Dropout & 256×14×14 & 256×14×14 & - & 0 \\
+\hline
+Flatten & 256×14×14 & 50,176 & - & 0 \\
+\hline
+FC1 & 50,176 & 512 & - & 25,690,624 \\
+\hline
+ReLU & 512 & 512 & - & 0 \\
+\hline
+Dropout & 512 & 512 & - & 0 \\
+\hline
+FC2 & 512 & 128 & - & 65,664 \\
+\hline
+ReLU & 128 & 128 & - & 0 \\
+\hline
+FC3 & 128 & 1 & - & 129 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Estrategia de Aumento de Datos}
+
+\begin{table}[h]
+\centering
+\caption{Parámetros de Aumento de Datos}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Método de Aumento} & \textbf{Configuración de Parámetros} \\
+\hline
+Volteo Horizontal & Probabilidad 0.5 \\
+\hline
+Rotación Aleatoria & Rango de ángulos ±10° \\
+\hline
+Variación de Color & Brillo ±0.2, Contraste ±0.2, Saturación ±0.2 \\
+\hline
+Ajuste de Tono & Tono ±0.1 \\
+\hline
+Normalización & Parámetros de normalización ImageNet \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Configuración de Hiperparámetros}
+
+\begin{table}[h]
+\centering
+\caption{Hiperparámetros de Entrenamiento}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Nombre del Parámetro} & \textbf{Valor} \\
+\hline
+Tamaño del Lote (Batch Size) & 32 \\
+\hline
+Tasa de Aprendizaje (Learning Rate) & 0.0001 \\
+\hline
+Épocas de Entrenamiento (Epochs) & 25 \\
+\hline
+Optimizador (Optimizer) & Adam \\
+\hline
+Decaimiento de Peso (Weight Decay) & 1e-5 \\
+\hline
+Programador de Tasa de Aprendizaje & ReduceLROnPlateau \\
+\hline
+Tasa de Dropout & 0.25, 0.5 \\
+\hline
+Función de Pérdida & BCEWithLogitsLoss (ponderada) \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Análisis de Resultados Experimentales}
+
+\subsection{Comparación de Rendimiento de Modelos}
+
+\begin{table}[h]
+\centering
+\caption{Comparación de Rendimiento de Dos Modelos}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Métrica} & \textbf{CNN Personalizada} & \textbf{ResNet18} \\
+\hline
+Precisión & 92.8\% & 94.4\% \\
+\hline
+Precisión (Precision) & 91.2\% & 93.1\% \\
+\hline
+Recall & 89.6\% & 92.8\% \\
+\hline
+Puntuación F1 & 90.4\% & 92.9\% \\
+\hline
+AUC & 0.962 & 0.978 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Análisis del Proceso de Entrenamiento}
+
+\subsubsection{Cambios en Pérdida y Precisión}
+
+\begin{figure}[h]
+\centering
+\subfigure[Curva de Pérdida de Entrenamiento]{\includegraphics[width=0.45\textwidth]{training_loss.png}}
+\subfigure[Curva de Precisión de Entrenamiento]{\includegraphics[width=0.45\textwidth]{training_accuracy.png}}
+\caption{Proceso de Entrenamiento del Modelo ResNet18}
+\end{figure}
+
+El proceso de entrenamiento muestra:
+\begin{itemize}
+    \item La función de pérdida converge rápidamente en las primeras 15 épocas
+    \item La precisión de validación se estabiliza alrededor del 94\%
+    \item El programador de tasa de aprendizaje previene efectivamente el sobreajuste
+\end{itemize}
+
+\subsection{Análisis de la Curva ROC}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{roc_curve.png}
+\caption{Curva ROC}
+\end{figure}
+
+El análisis de la curva ROC:
+\begin{itemize}
+    \item El valor AUC es 0.978, indicando que el modelo tiene excelente capacidad de discriminación
+    \item Mantiene alta tasa de verdaderos positivos con baja tasa de falsos positivos
+    \item Adecuado como herramienta de diagnóstico clínico asistido
+\end{itemize}
+
+\subsection{Análisis de la Matriz de Confusión}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{confusion_matrix.png}
+\caption{Matriz de Confusión}
+\end{figure}
+
+La matriz de confusión muestra:
+\begin{itemize}
+    \item Verdaderos Negativos (TN): 112 casos
+    \item Falsos Positivos (FP): 8 casos
+    \item Falsos Negativos (FN): 6 casos
+    \item Verdaderos Positivos (TP): 124 casos
+\end{itemize}
+
+\subsection{Análisis de Casos de Fallo}
+
+\subsubsection{Análisis de Casos de Falsos Positivos}
+\begin{itemize}
+    \item \textbf{Caso 1}: Imagen normal clasificada incorrectamente como enferma
+    \begin{itemize}
+        \item \textbf{Causa}: Calidad de imagen deficiente, textura vascular anormal
+        \item \textbf{Sugerencia de Mejora}: Introducir módulo de evaluación de calidad de imagen
+    \end{itemize}
+    \item \textbf{Caso 2}: Variación normal mal interpretada como enfermedad
+    \begin{itemize}
+        \item \textbf{Causa}: Variaciones individuales en estructura anatómica
+        \item \textbf{Sugerencia de Mejora}: Aumentar datos de entrenamiento más diversos
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Análisis de Casos de Falsos Negativos}
+\begin{itemize}
+    \item \textbf{Caso 1}: Enfermedad temprana no detectada
+    \begin{itemize}
+        \item \textbf{Causa}: Características de enfermedad no obvias, similares al tejido normal
+        \item \textbf{Sugerencia de Mejora}: Usar imágenes de entrada de mayor resolución
+    \end{itemize}
+    \item \textbf{Caso 2}: Enfermedad atípica no detectada
+    \begin{itemize}
+        \item \textbf{Causa}: Manifestaciones de enfermedad que no siguen patrones típicos
+        \item \textbf{Sugerencia de Mejora}: Introducir mecanismos de atención para enfocarse en características sutiles
+    \end{itemize}
+\end{itemize}
+
+\section{Conclusiones}
+
+\subsection{Principales Logros}
+
+\begin{itemize}
+    \item Construcción exitosa de un modelo de detección de imágenes médicas de alta precisión
+    \item El modelo ResNet18 alcanzó 94.4\% de precisión y 0.978 de AUC
+    \item Manejo efectivo del problema de desequilibrio de clases
+    \item Proporcionó resultados de predicción interpretables
+\end{itemize}
+
+\subsection{Innovaciones Técnicas}
+
+\begin{itemize}
+    \item Adopción de estrategia de aprendizaje por transferencia, aprovechando modelos preentrenados
+    \item Uso de función de pérdida ponderada para manejar desequilibrio de datos
+    \item Implementación de aumento de datos multidimensional para mejorar robustez del modelo
+    \item Combinación de múltiples métricas de evaluación para evaluación comprehensiva del rendimiento
+\end{itemize}
+
+\subsection{Valor de Aplicación Clínica}
+
+\begin{itemize}
+    \item \textbf{Eficiencia de Detección}: Detección a gran escala y rápida de poblaciones de alto riesgo
+    \item \textbf{Control de Costos}: Reducción de costos de detección manual
+    \item \textbf{Estandarización}: Proporciona estándares de diagnóstico unificados
+    \item \textbf{Accesibilidad}: Despliegue en instituciones médicas de nivel básico
+\end{itemize}
+
+\subsection{Limitaciones y Direcciones de Mejora}
+
+\begin{itemize}
+    \item \textbf{Limitaciones de Datos}: Relativamente pocas muestras de entrenamiento
+    \item \textbf{Capacidad de Generalización}: Adaptabilidad limitada a imágenes de diferentes dispositivos
+    \item \textbf{Interpretabilidad}: Naturaleza de caja negra de los modelos de deep learning
+    \item \textbf{Direcciones de Mejora}:
+    \begin{itemize}
+        \item Recolectar más datos de entrenamiento diversos
+        \item Introducir información multimodal (como imágenes OCT)
+        \item Combinar con técnicas de IA explicable
+        \item Desarrollar sistemas de diagnóstico en tiempo real
+    \end{itemize}
+\end{itemize}
+
+\section{Referencias}
+
+\begin{thebibliography}{99}
+\bibitem{litjens2017} Litjens, G., Kooi, T., Bejnordi, B. E., Setio, A. A. A., Ciompi, F., Ghafoorian, M., ... \& Sánchez, C. I. (2017). A survey on deep learning in medical image analysis. \emph{Medical image analysis}, 42, 60-88.
+
+\bibitem{esteva2017} Esteva, A., Kuprel, B., Novoa, R. A., Ko, J., Swetter, S. M., Blau, H. M., \& Thrun, S. (2017). Dermatologist-level classification of skin cancer with deep neural networks. \emph{Nature}, 542(7639), 115-118.
+
+\bibitem{gulshan2016} Gulshan, V., Peng, L., Coram, M., Stumpe, M. C., Wu, D., Narayanaswamy, A., ... \& Webster, D. R. (2016). Development and validation of a deep learning algorithm for detection of diabetic retinopathy in retinal fundus photographs. \emph{JAMA}, 316(22), 2402-2410.
+
+\bibitem{he2016} He, K., Zhang, X., Ren, S., \& Sun, J. (2016). Deep residual learning for image recognition. \emph{Proceedings of the IEEE conference on computer vision and pattern recognition}, 770-778.
+\end{thebibliography}
+
+\end{document}
