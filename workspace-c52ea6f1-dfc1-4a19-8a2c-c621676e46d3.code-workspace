@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "workspace-c52ea6f1-dfc1-4a19-8a2c-c621676e46d3",
+			"path": "."
+		},
+		{
+			"name": "TestSet",
+			"path": "../../Documents/bh/Machine-Learning-Class-Assignment25/1-Digit/TestSet"
+		},
+		{
+			"name": "TrainingSet",
+			"path": "../../Documents/bh/Machine-Learning-Class-Assignment25/1-Digit/TrainingSet"
+		}
+	],
+	"settings": {}
+}
