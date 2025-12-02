@@ -208,7 +208,7 @@ weighted avg     0.9921    0.9921    0.9921     10000
 
 ```bash
 cd problem2
-python medical_detection.py --train_dir ../2-MedImage-TrainSet --test_dir ../2-MedImage-TestSet
+python medical_detection.py --train_dir ../sets/2-MedImage-TrainSet --test_dir ../sets/2-MedImage-TestSet
 ```
 
 **可选参数：**

@@ -24,7 +24,7 @@ class MedicalDataset(Dataset):
         self.labels = []
         
         # 遍历数据目录，获取所有图像路径和标签
-        for img_path in self.data_dir.glob('*.jpg'):
+        for img_path in self.data_dir.glob('**/*.jpg'):
             if img_path.name.startswith('disease'):
                 label = 1  # 患病
             elif img_path.name.startswith('normal'):
