@@ -216,16 +216,24 @@ def calculate_metrics(pred, target):
     mse = mean_squared_error(target_np, pred_np)
     cc, _ = pearsonr(target_np, pred_np)
     
-    # 计算KL散度
-    # 归一化为概率分布
-    pred_prob = pred_np / (pred_np.sum() + 1e-8)
-    target_prob = target_np / (target_np.sum() + 1e-8)
-    
-    # 避免log(0)
-    pred_prob = np.clip(pred_prob, 1e-8, 1)
-    kl_div = np.sum(target_prob * np.log(target_prob / pred_prob))
+    # 计算KL散度（对零值做掩码并平滑，避免log(0)或0 * inf导致NaN）
+    eps = 1e-8
+    pred_prob = pred_np / (pred_np.sum() + eps)
+    target_prob = target_np / (target_np.sum() + eps)
+
+    # 平滑并裁剪以避免除零或log(0)
+    pred_prob = np.clip(pred_prob, eps, 1.0)
+    target_prob = np.clip(target_prob, 0.0, 1.0)
+
+    # 仅在target_prob>0的位置计算KL，避免0 * log(0/.)产生NaN
+    mask = target_prob > 0
+    if np.any(mask):
+        kl_div = np.sum(target_prob[mask] * np.log(target_prob[mask] / pred_prob[mask]))
+    else:
+        kl_div = 0.0
     
     # 计算Jensen-Shannon散度
+    # Jensen-Shannon散度（使用平滑后的分布）
     js_div = jensenshannon(pred_prob, target_prob) ** 2
     
     return {
@@ -316,10 +324,10 @@ def evaluate_model(model, test_loader, device):
             all_predictions.append(outputs.cpu())
             all_targets.append(saliencies.cpu())
     
-    # 计算平均指标
+    # 计算平均指标（对可能出现的NaN使用nanmean）
     avg_metrics = {}
     for key in all_metrics[0].keys():
-        avg_metrics[key] = np.mean([m[key] for m in all_metrics])
+        avg_metrics[key] = np.nanmean([m[key] for m in all_metrics])
     
     return all_predictions, all_targets, avg_metrics
 
@@ -384,6 +392,10 @@ def visualize_predictions(predictions, targets, num_samples=4):
     for i in range(num_samples):
         pred = predictions[i][0].numpy()
         target = targets[i][0].numpy()
+
+        # 去掉通道轴 (1, H, W) -> (H, W)
+        pred = np.squeeze(pred)
+        target = np.squeeze(target)
         
         # 归一化
         pred = (pred - pred.min()) / (pred.max() - pred.min() + 1e-8)
